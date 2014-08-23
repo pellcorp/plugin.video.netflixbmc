@@ -14,6 +14,7 @@ import subprocess
 import xbmcplugin
 import xbmcgui
 import xbmcaddon
+import xbmcvfs
 
 
 socket.setdefaulttimeout(30)
@@ -21,10 +22,12 @@ pluginhandle = int(sys.argv[1])
 addon = xbmcaddon.Addon()
 addonID = addon.getAddonInfo('id')
 cj = cookielib.MozillaCookieJar()
-urlMain = "http://movies.netflix.com"
+urlMain = "http://www.netflix.com"
 osWin = xbmc.getCondVisibility('system.platform.windows')
 osLinux = xbmc.getCondVisibility('system.platform.linux')
 osOsx = xbmc.getCondVisibility('system.platform.osx')
+addonDir = xbmc.translatePath(addon.getAddonInfo('path'))
+defaultFanart = os.path.join(addonDir ,'fanart.png')
 addonUserDataFolder = xbmc.translatePath("special://profile/addon_data/"+addonID)
 icon = xbmc.translatePath('special://home/addons/'+addonID+'/icon.png')
 utilityPath = xbmc.translatePath('special://home/addons/'+addonID+'/resources/NetfliXBMC_Utility.exe')
@@ -34,17 +37,12 @@ searchHistoryFolder = os.path.join(addonUserDataFolder, "history")
 cacheFolder = os.path.join(addonUserDataFolder, "cache")
 cacheFolderCoversTMDB = os.path.join(cacheFolder, "covers")
 cacheFolderFanartTMDB = os.path.join(cacheFolder, "fanart")
-libraryFolder = xbmc.translatePath("special://profile/addon_data/"+addonID+"/library")
-libraryFolderMovies = xbmc.translatePath("special://profile/addon_data/"+addonID+"/library/Movies")
-libraryFolderTV = xbmc.translatePath("special://profile/addon_data/"+addonID+"/library/TV")
+libraryFolder = xbmc.translatePath(addon.getSetting("libraryPath"))
+libraryFolderMovies = os.path.join(libraryFolder, "Movies")
+libraryFolderTV = os.path.join(libraryFolder, "TV")
 cookieFile = xbmc.translatePath("special://profile/addon_data/"+addonID+"/cookies")
-profileFile = xbmc.translatePath("special://profile/addon_data/"+addonID+"/profile")
-authFile = xbmc.translatePath("special://profile/addon_data/"+addonID+"/authUrl")
-localeFile = xbmc.translatePath("special://profile/addon_data/"+addonID+"/locale")
 dontUseKiosk = addon.getSetting("dontUseKiosk") == "true"
 linuxFullscreen = addon.getSetting("linuxFullscreen") == "true"
-showAllEpisodesInVA = addon.getSetting("showAllEpisodesInVA") == "true"
-hideMoviesInVA = addon.getSetting("hideMoviesInVA") == "true"
 browseTvShows = addon.getSetting("browseTvShows") == "true"
 singleProfile = addon.getSetting("singleProfile") == "true"
 showProfiles = addon.getSetting("showProfiles") == "true"
@@ -60,17 +58,13 @@ viewIdEpisodes = addon.getSetting("viewIdEpisodesNew")
 viewIdActivity = addon.getSetting("viewIdActivity")
 winBrowser = int(addon.getSetting("winBrowserNew"))
 osxBrowser = int(addon.getSetting("osxBrowser"))
-language = ""
-country = ""
-if os.path.exists(localeFile):
-    fh = open(localeFile, 'r')
-    language = fh.read()
-    fh.close()
+language = addon.getSetting("language")
+auth = addon.getSetting("auth")
+if len(language.split("-"))>1:
     country = language.split("-")[1]
-auth = ""
 
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-userAgent = "Mozilla/5.0 (Windows NT 5.1; rv:25.0) Gecko/20100101 Firefox/25.0"
+userAgent = "Mozilla/5.0 (Windows NT 5.1; rv:30.0) Gecko/20100101 Firefox/30.0"
 opener.addheaders = [('User-agent', userAgent)]
 
 if not os.path.isdir(addonUserDataFolder):
@@ -82,17 +76,13 @@ if not os.path.isdir(cacheFolderCoversTMDB):
 if not os.path.isdir(cacheFolderFanartTMDB):
     os.mkdir(cacheFolderFanartTMDB)
 if not os.path.isdir(libraryFolder):
-    os.mkdir(libraryFolder)
+    xbmcvfs.mkdir(libraryFolder)
 if not os.path.isdir(libraryFolderMovies):
-    os.mkdir(libraryFolderMovies)
+    xbmcvfs.mkdir(libraryFolderMovies)
 if not os.path.isdir(libraryFolderTV):
-    os.mkdir(libraryFolderTV)
+    xbmcvfs.mkdir(libraryFolderTV)
 if os.path.exists(cookieFile):
     cj.load(cookieFile)
-if os.path.exists(authFile):
-    fh = open(authFile, 'r')
-    auth = fh.read()
-    fh.close()
 
 while (username == "" or password == ""):
     addon.openSettings()
@@ -102,19 +92,25 @@ while (username == "" or password == ""):
 
 def index():
     if login():
-        addDir(translation(30002), urlMain+"/MyList?leid=595&link=seeall", 'listVideos', "")
-        addDir(translation(30010), "", 'listViewingActivity', "")
-        addDir(translation(30003), urlMain+"/WiRecentAdditionsGallery?nRR=releaseDate&nRT=all&pn=1&np=1&actionMethod=json", 'listVideos', "")
-        addDir(translation(30004), urlMain+"/WiHD?dev=PC&pn=1&np=1&actionMethod=json", 'listVideos', "")
-        addDir(translation(30005), urlMain+"/WiGenre?agid=83&pn=1&np=1&actionMethod=json", 'listVideos', "")
-        addDir(translation(30007), "WiGenre", 'listGenres', "")
-        addDir(translation(30006), urlMain+"/WiGenre?agid=6839&pn=1&np=1&actionMethod=json", 'listVideos', "")
-        addDir(translation(30009), "KidsAltGenre", 'listGenres', "")
-        addDir(translation(30008), "", 'search', "")
+        addDir(translation(30011), "", 'main', "", "movie")
+        addDir(translation(30012), "", 'main', "", "tv")
         xbmcplugin.endOfDirectory(pluginhandle)
 
 
-def listVideos(url):
+def main(type):
+    addDir(translation(30002), urlMain+"/MyList?leid=595&link=seeall", 'listVideos', "", type)
+    addDir(translation(30010), "", 'listViewingActivity', "", type)
+    addDir(translation(30003), urlMain+"/WiRecentAdditionsGallery?nRR=releaseDate&nRT=all&pn=1&np=1&actionMethod=json", 'listVideos', "", type)
+    addDir(translation(30004), urlMain+"/WiHD?dev=PC&pn=1&np=1&actionMethod=json", 'listVideos', "", type)
+    if type=="tv":
+        addDir(translation(30005), urlMain+"/WiGenre?agid=83&pn=1&np=1&actionMethod=json", 'listVideos', "", type)
+    addDir(translation(30007), "WiGenre", 'listGenres', "", type)
+    addDir(translation(30009), "KidsAltGenre", 'listGenres', "", type)
+    addDir(translation(30008), "", 'search', "", type)
+    xbmcplugin.endOfDirectory(pluginhandle)
+
+
+def listVideos(url, type):
     if not singleProfile:
         setProfile()
     xbmcplugin.setContent(pluginhandle, "movies")
@@ -126,28 +122,62 @@ def listVideos(url):
             if '<div id="queue"' in content:
                 content = content[content.find('<div id="queue"'):]
             content = content.replace("\\t","").replace("\\n", "").replace("\\", "")
-            match1 = re.compile('<span id="dbs(.+?)_.+?alt=".+?" src="(.+?)"', re.DOTALL).findall(content)
-            match2 = re.compile('<span class="title "><a id="b(.+?)_', re.DOTALL).findall(content)
+            match1 = re.compile('<span id="dbs(.+?)_.+?alt=".+?"', re.DOTALL).findall(content)
+            match2 = re.compile('<span class="title.*?"><a id="b(.+?)_', re.DOTALL).findall(content)
+            match3 = re.compile('<a href="http://dvd.netflix.com/WiPlayer\?movieid=(.+?)&', re.DOTALL).findall(content)
+            match4 = re.compile('<a class="playHover" href=".+?WiPlayer\?movieid=(.+?)&', re.DOTALL).findall(content)
+            match5 = re.compile('"boxart":".+?","titleId":(.+?),', re.DOTALL).findall(content)
             if match1:
-                for videoID, thumbUrl in match1:
-                    listVideo(videoID, "", thumbUrl, False, False)
+                match = match1
             elif match2:
-                for videoID in match2:
-                    listVideo(videoID, "", "", False, False)
-            match = re.compile('&pn=(.+?)&', re.DOTALL).findall(url)
-            if match:
-                currentPage = match[0]
+                match = match2
+            elif match3:
+                match = match3
+            elif match4:
+                match = match4
+            elif match5:
+                match = match5
+            for videoID in match:
+                listVideo(videoID, "", "", False, False, type)
+            match1 = re.compile('&pn=(.+?)&', re.DOTALL).findall(url)
+            match2 = re.compile('&from=(.+?)&', re.DOTALL).findall(url)
+            matchApiRoot = re.compile('"API_ROOT":"(.+?)"', re.DOTALL).findall(content)
+            matchApiBase = re.compile('"API_BASE_URL":"(.+?)"', re.DOTALL).findall(content)
+            if match1:
+                currentPage = match1[0]
                 nextPage = str(int(currentPage)+1)
-                addDir(translation(30001), url.replace("&pn="+currentPage+"&", "&pn="+nextPage+"&"), 'listVideos', "")
+                addDir(translation(30001), url.replace("&pn="+currentPage+"&", "&pn="+nextPage+"&"), 'listVideos', "", type)
+            elif "agid=" in url:
+                genreID = url[url.find("agid=")+5:]
+                addDir(translation(30001), matchApiRoot[0]+matchApiBase[0]+"/wigenre?genreId="+genreID+"&full=false&from=51&to=100&_retry=0", 'listVideos', "", type)
+            elif match2:
+                currentFrom = match2[0]
+                nextFrom = str(int(currentFrom)+50)
+                currentTo = str(int(currentFrom)+49)
+                nextTo = str(int(currentFrom)+99)
+                addDir(translation(30001), url.replace("&from="+currentFrom+"&", "&from="+nextFrom+"&").replace("&to="+currentTo+"&", "&to="+nextTo+"&"), 'listVideos', "", type)
             if forceView:
                 xbmc.executebuiltin('Container.SetViewMode('+viewIdVideos+')')
             xbmcplugin.endOfDirectory(pluginhandle)
     else:
         deleteCookies()
-        xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30127))+',10000)')
+        xbmc.executebuiltin('XBMC.Notification(NetfliXBMC:,'+str(translation(30127))+',15000)')
 
 
-def listVideo(videoID, title, thumbUrl, tvshowIsEpisode, hideMovies):
+def listSearchVideos(url, type):
+    if not singleProfile:
+        setProfile()
+    xbmcplugin.setContent(pluginhandle, "movies")
+    content = opener.open(url).read()
+    content = json.loads(content)
+    for item in content["galleryVideos"]["items"]:
+        listVideo(str(item["id"]), "", "", False, False, type)
+    if forceView:
+        xbmc.executebuiltin('Container.SetViewMode('+viewIdVideos+')')
+    xbmcplugin.endOfDirectory(pluginhandle)
+
+
+def listVideo(videoID, title, thumbUrl, tvshowIsEpisode, hideMovies, type):
     videoDetails = getVideoInfo(videoID)
     match = re.compile('<span class="title ".*?>(.+?)<\/span>', re.DOTALL).findall(videoDetails)
     if not title:
@@ -213,25 +243,29 @@ def listVideo(videoID, title, thumbUrl, tvshowIsEpisode, hideMovies):
     if browseTvShows and videoType == "tvshow":
         nextMode = "listSeasons"
     added = False
-    if "/MyList" in url:
+    if "/MyList" in url and videoTypeTemp==type:
         addVideoDirR(title, videoID, nextMode, thumbUrl, videoType, desc, duration, year, mpaa, director, genre, rating)
         added = True
     elif videoType == "movie" and hideMovies:
         pass
-    else:
+    elif videoTypeTemp==type or type=="both":
         addVideoDir(title, videoID, nextMode, thumbUrl, videoType, desc, duration, year, mpaa, director, genre, rating)
         added = True
     return added
 
 
-def listGenres(type):
+def listGenres(type, videoType):
     if not singleProfile:
         setProfile()
     xbmcplugin.addSortMethod(pluginhandle, xbmcplugin.SORT_METHOD_LABEL)
     content = opener.open(urlMain+"/WiHome").read()
     match = re.compile('/'+type+'\\?agid=(.+?)">(.+?)<', re.DOTALL).findall(content)
     for genreID, title in match:
-        addDir(title, urlMain+"/"+type+"?agid="+genreID+"&pn=1&np=1&actionMethod=json", 'listVideos', "")
+        if not title=="TV Shows":
+            if type=="KidsAltGenre":
+                addDir(title, urlMain+"/"+type+"?agid="+genreID+"&pn=1&np=1&actionMethod=json", 'listVideos', "", videoType)
+            else:
+                addDir(title, urlMain+"/"+type+"?agid="+genreID, 'listVideos', "", videoType)
     xbmcplugin.endOfDirectory(pluginhandle)
 
 
@@ -274,25 +308,29 @@ def listEpisodes(seriesID, season):
     xbmcplugin.endOfDirectory(pluginhandle)
 
 
-def listViewingActivity():
+def listViewingActivity(type):
     if not singleProfile:
         setProfile()
     xbmcplugin.setContent(pluginhandle, "movies")
-    content = opener.open("https://api-global.netflix.com/desktop/account/viewinghistory").read()
+    content = opener.open(urlMain+"/WiViewingActivity").read()
+    match = re.compile('"authUrl":"(.+?)"', re.DOTALL).findall(content)
+    authUrl = match[0]
+    addon.setSetting("auth", authUrl)
+    content = opener.open("https://api-global.netflix.com/desktop/account/viewinghistory.1?languages="+language+"&authURL="+authUrl+"&_retry=0&routing=redirect").read()
     content = json.loads(content)
     count = 0
     tvshows = []
     for item in content["viewedItems"]:
-        videoID = str(item["movieID"])
+        videoID = str(item["topNodeId"])
         title = item["title"].encode('utf-8')
         if ":" in title:
             tvshowTitle = title.split(":")[0]
-            if tvshowTitle in tvshows and not showAllEpisodesInVA:
+            if videoID in tvshows:
                 continue
-            tvshows.append(tvshowTitle)
+            tvshows.append(videoID)
         date = item["dateStr"].encode('utf-8')
         title = date+" - "+title
-        added = listVideo(videoID, title, "", True, hideMoviesInVA)
+        added = listVideo(videoID, title, "", False, False, type)
         if added:
             count += 1
         if count == 40:
@@ -305,12 +343,12 @@ def listViewingActivity():
 def getVideoInfo(videoID):
     cacheFile = os.path.join(cacheFolder, videoID+".cache")
     if os.path.exists(cacheFile):
-        fh = open(cacheFile, 'r')
+        fh = xbmcvfs.File(cacheFile, 'r')
         content = fh.read()
         fh.close()
     else:
         content = opener.open(urlMain+"/JSON/BOB?movieid="+videoID).read()
-        fh = open(cacheFile, 'w')
+        fh = xbmcvfs.File(cacheFile, 'w')
         fh.write(content)
         fh.close()
     return content.replace("\\t","").replace("\\n", "").replace("\\", "")
@@ -319,13 +357,13 @@ def getVideoInfo(videoID):
 def getSeriesInfo(seriesID):
     cacheFile = os.path.join(cacheFolder, seriesID+"_episodes.cache")
     if os.path.exists(cacheFile) and (time.time()-os.path.getmtime(cacheFile) < 60*5):
-        fh = open(cacheFile, 'r')
+        fh = xbmcvfs.File(cacheFile, 'r')
         content = fh.read()
         fh.close()
     else:
         url = "http://api-global.netflix.com/desktop/odp/episodes?languages="+language+"&forceEpisodes=true&routing=redirect&video="+seriesID+"&country="+country
         content = opener.open(url).read()
-        fh = open(cacheFile, 'w')
+        fh = xbmcvfs.File(cacheFile, 'w')
         fh.write(content)
         fh.close()
     return content
@@ -340,12 +378,21 @@ def addMyListToLibrary():
             if '<div id="queue"' in content:
                 content = content[content.find('<div id="queue"'):]
             content = content.replace("\\t","").replace("\\n", "").replace("\\", "")
-            match1 = re.compile('<span id="dbs(.+?)_.+?alt=".+?" src=".+?">', re.DOTALL).findall(content)
-            match2 = re.compile('<span class="title "><a id="b(.+?)_', re.DOTALL).findall(content)
+            match1 = re.compile('<span id="dbs(.+?)_.+?alt=".+?"', re.DOTALL).findall(content)
+            match2 = re.compile('<span class="title.*?"><a id="b(.+?)_', re.DOTALL).findall(content)
+            match3 = re.compile('<a href="http://dvd.netflix.com/WiPlayer\?movieid=(.+?)&', re.DOTALL).findall(content)
+            match4 = re.compile('<a class="playHover" href=".+?WiPlayer\?movieid=(.+?)&', re.DOTALL).findall(content)
+            match5 = re.compile('"boxart":".+?","titleId":(.+?),', re.DOTALL).findall(content)
             if match1:
                 match = match1
             elif match2:
                 match = match2
+            elif match3:
+                match = match3
+            elif match4:
+                match = match4
+            elif match5:
+                match = match5
             for videoID in match:
                 videoDetails = getVideoInfo(videoID)
                 match = re.compile('<span class="title ".*?>(.+?)<\/span>', re.DOTALL).findall(videoDetails)
@@ -378,14 +425,12 @@ def addMyListToLibrary():
 def playVideo(id):
     xbmc.Player().stop()
     if singleProfile:
-        url = "http://movies.netflix.com/WiPlayer?movieid="+id
+        url = urlMain+"/WiPlayer?movieid="+id
     else:
         token = ""
-        if os.path.exists(profileFile):
-            fh = open(profileFile, 'r')
-            token = fh.read()
-            fh.close()
-        url = "https://movies.netflix.com/SwitchProfile?tkn="+token+"&nextpage="+urllib.quote_plus("http://movies.netflix.com/WiPlayer?movieid="+id)
+        if addon.getSetting("profile"):
+            token = addon.getSetting("profile")
+        url = "https://www.netflix.com/SwitchProfile?tkn="+token+"&nextpage="+urllib.quote_plus(urlMain+"/WiPlayer?movieid="+id)
     kiosk = "yes"
     if dontUseKiosk:
         kiosk = "no"
@@ -450,82 +495,83 @@ def configureUtility():
 def deleteCookies():
     if os.path.exists(cookieFile):
         os.remove(cookieFile)
-    if os.path.exists(localeFile):
-        os.remove(localeFile)
+        xbmc.executebuiltin('XBMC.Notification(NetfliXBMC:,Cookies have been deleted!,5000)')
 
 
 def deleteCache():
     if os.path.exists(cacheFolder):
         try:
             shutil.rmtree(cacheFolder)
+            xbmc.executebuiltin('XBMC.Notification(NetfliXBMC:,Cache has been deleted!,5000)')
         except:
-            shutil.rmtree(cacheFolder)
+            pass
 
 
-def search():
+def resetAddon():
+    dialog = xbmcgui.Dialog()
+    if dialog.yesno("NetfliXBMC:", "Really reset the addon?"):
+      if os.path.exists(addonUserDataFolder):
+          try:
+              shutil.rmtree(addonUserDataFolder)
+              xbmc.executebuiltin('XBMC.Notification(NetfliXBMC:,Addon has been reset!,5000)')
+          except:
+              pass
+
+
+def search(type):
     keyboard = xbmc.Keyboard('', translation(30008))
     keyboard.doModal()
     if keyboard.isConfirmed() and keyboard.getText():
         search_string = keyboard.getText().replace(" ", "+")
-        listVideos(urlMain+"/WiSearch?v1="+search_string)
+        listSearchVideos("http://api-global.netflix.com/desktop/search/instantsearch?esn=www&term="+search_string+"&locale="+addon.getSetting("language")+"&country=US&authURL="+addon.getSetting("auth")+"&_retry=0&routing=redirect", type)
 
 
 def addToQueue(id):
-    opener.open("http://movies.netflix.com/AddToQueue?movieid="+id+"&authURL="+auth)
+    opener.open(urlMain+"/AddToQueue?movieid="+id+"&authURL="+auth)
 
 
 def removeFromQueue(id):
-    opener.open("http://movies.netflix.com/QueueDelete?movieid="+id+"&authURL="+auth)
+    opener.open(urlMain+"/QueueDelete?movieid="+id+"&authURL="+auth)
     xbmc.executebuiltin("Container.Refresh")
 
 
 def login():
-    content = opener.open("http://movies.netflix.com/Login").read()
+    content = opener.open(urlMain+"/Login").read()
     match = re.compile('"LOCALE":"(.+?)"', re.DOTALL).findall(content)
-    if match and not os.path.exists(localeFile):
-        fh = open(localeFile, 'w')
-        fh.write(match[0])
-        fh.close()
+    if match and not addon.getSetting("language"):
+        addon.setSetting("language", match[0])
     if not "Sorry, Netflix is not available in your country yet." in content and not "Sorry, Netflix hasn't come to this part of the world yet" in content:
         match = re.compile('id="signout".+?authURL=(.+?)"', re.DOTALL).findall(content)
         if match:
-            fh = open(authFile, 'w')
-            fh.write(match[0])
-            fh.close()
+            addon.setSetting("auth", match[0])
         if 'id="page-LOGIN"' in content:
             match = re.compile('name="authURL" value="(.+?)"', re.DOTALL).findall(content)
             authUrl = match[0]
-            fh = open(authFile, 'w')
-            fh.write(authUrl)
-            fh.close()
+            addon.setSetting("auth", authUrl)
             content = opener.open("https://signup.netflix.com/Login", "authURL="+urllib.quote_plus(authUrl)+"&email="+urllib.quote_plus(username)+"&password="+urllib.quote_plus(password)+"&RememberMe=on").read()
             match = re.compile('"LOCALE":"(.+?)"', re.DOTALL).findall(content)
-            if match and not os.path.exists(localeFile):
-                fh = open(localeFile, 'w')
-                fh.write(match[0])
-                fh.close()
+            if match and not addon.getSetting("language"):
+                addon.setSetting("language", match[0])
             cj.save(cookieFile)
-        if not os.path.exists(profileFile) and not singleProfile:
+        if not addon.getSetting("profile") and not singleProfile:
             chooseProfile()
         elif not singleProfile and showProfiles:
             chooseProfile()
         return True
     else:
-        xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30126))+',10000)')
+        xbmc.executebuiltin('XBMC.Notification(NetfliXBMC:,'+str(translation(30126))+',10000)')
         return False
 
 
 def setProfile():
-    fh = open(profileFile, 'r')
-    token = fh.read()
-    fh.close()
-    opener.open("https://movies.netflix.com/ProfilesGate?nextpage=http%3A%2F%2Fmovies.netflix.com%2FDefault")
+    token = addon.getSetting("profile")
+    opener.open("https://www.netflix.com/ProfilesGate?nextpage=http%3A%2F%2Fwww.netflix.com%2FDefault")
     opener.open("https://api-global.netflix.com/desktop/account/profiles/switch?switchProfileGuid="+token)
     cj.save(cookieFile)
 
 
 def chooseProfile():
-    content = opener.open("https://movies.netflix.com/ProfilesGate?nextpage=http%3A%2F%2Fmovies.netflix.com%2FDefault").read()
+    content = opener.open("https://www.netflix.com/ProfilesGate?nextpage=http%3A%2F%2Fwww.netflix.com%2FDefault").read()
     match = re.compile('"profileName":"(.+?)".+?token":"(.+?)"', re.DOTALL).findall(content)
     profiles = []
     tokens = []
@@ -539,15 +585,13 @@ def chooseProfile():
         # Profile selection isn't remembered, so it has to be executed before every requests (setProfile)
         # If you know a solution for this, please let me know
         # opener.open("https://api-global.netflix.com/desktop/account/profiles/switch?switchProfileGuid="+token)
-        fh = open(profileFile, 'w')
-        fh.write(token)
-        fh.close()
+        addon.setSetting("profile", token)
         cj.save(cookieFile)
 
 
 def forceChooseProfile():
     addon.setSetting("singleProfile", "false")
-    xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30111))+',5000)')
+    xbmc.executebuiltin('XBMC.Notification(NetfliXBMC:,'+str(translation(30111))+',5000)')
     chooseProfile()
 
 
@@ -555,8 +599,8 @@ def addMovieToLibrary(movieID, title, singleUpdate=True):
     movieFolderName = (''.join(c for c in unicode(title, 'utf-8') if c not in '/\\:?"*|<>')).strip(' .')
     dir = os.path.join(libraryFolderMovies, movieFolderName)
     if not os.path.isdir(dir):
-        os.mkdir(dir)
-        fh = open(os.path.join(dir, "movie.strm"), 'w')
+        xbmcvfs.mkdir(dir)
+        fh = xbmcvfs.File(os.path.join(dir, "movie.strm"), 'w')
         fh.write("plugin://plugin.video.netflixbmc/?mode=playVideo&url="+movieID)
         fh.close()
     if updateDB and singleUpdate:
@@ -567,7 +611,7 @@ def addSeriesToLibrary(seriesID, seriesTitle, season, singleUpdate=True):
     seriesFolderName = (''.join(c for c in unicode(seriesTitle, 'utf-8') if c not in '/\\:?"*|<>')).strip(' .')
     seriesDir = os.path.join(libraryFolderTV, seriesFolderName)
     if not os.path.isdir(seriesDir):
-        os.mkdir(seriesDir)
+        xbmcvfs.mkdir(seriesDir)
     content = getSeriesInfo(seriesID)
     content = json.loads(content)
     for test in content["episodes"]:
@@ -579,7 +623,7 @@ def addSeriesToLibrary(seriesID, seriesTitle, season, singleUpdate=True):
             if seasonCheck:
                 seasonDir = os.path.join(seriesDir, "Season "+episodeSeason)
                 if not os.path.isdir(seasonDir):
-                    os.mkdir(seasonDir)
+                    xbmcvfs.mkdir(seasonDir)
                 episodeID = str(item["episodeId"])
                 episodeNr = str(item["episode"])
                 episodeTitle = item["title"].encode('utf-8')
@@ -590,7 +634,7 @@ def addSeriesToLibrary(seriesID, seriesTitle, season, singleUpdate=True):
                     seasonNr = "0"+seasonNr
                 filename = "S"+seasonNr+"E"+episodeNr+" - "+episodeTitle+".strm"
                 filename = (''.join(c for c in unicode(filename, 'utf-8') if c not in '/\\:?"*|<>')).strip(' .')
-                fh = open(os.path.join(seasonDir, filename), 'w')
+                fh = xbmcvfs.File(os.path.join(seasonDir, filename), 'w')
                 fh.write("plugin://plugin.video.netflixbmc/?mode=playVideo&url="+episodeID)
                 fh.close()
     if updateDB and singleUpdate:
@@ -621,8 +665,8 @@ def parameters_string_to_dict(parameters):
     return paramDict
 
 
-def addDir(name, url, mode, iconimage):
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&thumb="+urllib.quote_plus(iconimage)
+def addDir(name, url, mode, iconimage, type=""):
+    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+str(mode)+"&type="+str(type)+"&thumb="+urllib.quote_plus(iconimage)
     ok = True
     liz = xbmcgui.ListItem(name, iconImage="DefaultTVShows.png", thumbnailImage=iconimage)
     liz.setInfo(type="video", infoLabels={"title": name})
@@ -631,6 +675,7 @@ def addDir(name, url, mode, iconimage):
         entries.append((translation(30122), 'RunPlugin(plugin://plugin.video.netflixbmc/?mode=addMyListToLibrary)',))
     if not singleProfile:
         entries.append((translation(30110), 'RunPlugin(plugin://plugin.video.netflixbmc/?mode=chooseProfile)',))
+    liz.setProperty("fanart_image", defaultFanart)
     liz.addContextMenuItems(entries)
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
     return ok
@@ -825,11 +870,14 @@ thumb = urllib.unquote_plus(params.get('thumb', ''))
 name = urllib.unquote_plus(params.get('name', ''))
 season = urllib.unquote_plus(params.get('season', ''))
 seriesID = urllib.unquote_plus(params.get('seriesID', ''))
+type = urllib.unquote_plus(params.get('type', ''))
 
-if mode == 'listQueue':
-    listQueue()
+if mode == 'main':
+    main(type)
 elif mode == 'listVideos':
-    listVideos(url)
+    listVideos(url, type)
+elif mode == 'listSearchVideos':
+    listSearchVideos(url, type)
 elif mode == 'addToQueue':
     addToQueue(url)
 elif mode == 'removeFromQueue':
@@ -837,15 +885,15 @@ elif mode == 'removeFromQueue':
 elif mode == 'playVideo':
     playVideo(url)
 elif mode == 'search':
-    search()
+    search(type)
 elif mode == 'login':
     login()
 elif mode == 'chooseProfile':
     chooseProfile()
 elif mode == 'listGenres':
-    listGenres(url)
+    listGenres(url, type)
 elif mode == 'listViewingActivity':
-    listViewingActivity()
+    listViewingActivity(type)
 elif mode == 'listSeasons':
     listSeasons(name, url, thumb)
 elif mode == 'listEpisodes':
@@ -856,6 +904,8 @@ elif mode == 'deleteCookies':
     deleteCookies()
 elif mode == 'deleteCache':
     deleteCache()
+elif mode == 'resetAddon':
+    resetAddon()
 elif mode == 'playTrailer':
     playTrailer(url)
 elif mode == 'addMyListToLibrary':
