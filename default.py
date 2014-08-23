@@ -64,7 +64,7 @@ if len(language.split("-"))>1:
     country = language.split("-")[1]
 
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-userAgent = "Mozilla/5.0 (Windows NT 5.1; rv:30.0) Gecko/20100101 Firefox/30.0"
+userAgent = "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2114.2 Safari/537.36"
 opener.addheaders = [('User-agent', userAgent)]
 
 if not os.path.isdir(addonUserDataFolder):
@@ -439,35 +439,20 @@ def playVideo(id):
             xbmc.executebuiltin("RunPlugin(plugin://plugin.program.chrome.launcher/?url="+urllib.quote_plus(url)+"&mode=showSite&kiosk="+kiosk+")")
         elif osxBrowser == 1:
             subprocess.Popen('open -a "/Applications/Safari.app/" '+url, shell=True)
-        try:
-            xbmc.sleep(5000)
-            subprocess.Popen('cliclick c:500,500', shell=True)
-            subprocess.Popen('cliclick kp:arrow-up', shell=True)
-            xbmc.sleep(5000)
-            subprocess.Popen('cliclick c:500,500', shell=True)
-            subprocess.Popen('cliclick kp:arrow-up', shell=True)
-            xbmc.sleep(5000)
-            subprocess.Popen('cliclick c:500,500', shell=True)
-            subprocess.Popen('cliclick kp:arrow-up', shell=True)
-        except:
-            pass
+            try:
+                xbmc.sleep(5000)
+                subprocess.Popen('cliclick c:500,500', shell=True)
+                subprocess.Popen('cliclick kp:arrow-up', shell=True)
+                xbmc.sleep(5000)
+                subprocess.Popen('cliclick c:500,500', shell=True)
+                subprocess.Popen('cliclick kp:arrow-up', shell=True)
+                xbmc.sleep(5000)
+                subprocess.Popen('cliclick c:500,500', shell=True)
+                subprocess.Popen('cliclick kp:arrow-up', shell=True)
+            except:
+                pass
     elif osLinux:
         xbmc.executebuiltin("RunPlugin(plugin://plugin.program.chrome.launcher/?url="+urllib.quote_plus(url)+"&mode=showSite&kiosk="+kiosk+"&userAgent="+urllib.quote_plus(userAgent)+")")
-        try:
-            xbmc.sleep(5000)
-            subprocess.Popen('xdotool mousemove 9999 9999 click 1', shell=True)
-            if linuxFullscreen:
-                subprocess.Popen('xdotool key f', shell=True)
-            xbmc.sleep(5000)
-            subprocess.Popen('xdotool mousemove 9999 9999 click 1', shell=True)
-            if linuxFullscreen:
-                subprocess.Popen('xdotool key f', shell=True)
-            xbmc.sleep(5000)
-            subprocess.Popen('xdotool mousemove 9999 9999 click 1', shell=True)
-            if linuxFullscreen:
-                subprocess.Popen('xdotool key f', shell=True)
-        except:
-            pass
     elif osWin:
         if winBrowser == 1:
             path = 'C:\\Program Files\\Internet Explorer\\iexplore.exe'
