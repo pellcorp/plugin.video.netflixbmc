@@ -37,7 +37,7 @@ if [ $XDOTOOL -eq 0 ]; then
 	sleep 5
 	xdotool mousemove 9999 9999 click 1
 else
-	echo "xdotool is not installed, can't do full screen"
+	echo "xdotool is not installed, can't remove cursor"
 fi
 
 # wait for google-chrome to be killed before killing irxevent below.  This only works if we execute irxevent as a daemon, otherwise
