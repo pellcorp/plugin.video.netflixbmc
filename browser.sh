@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Managed to resolve the issues with, but will leave this here anyway, as its a good fallback
-CHROME_STARTED=`ps -ef | grep google-chrome-unstable | grep -v "grep" | wc -l`
+CHROME_STARTED=`ps -ef | grep google-chrome | grep -v "grep" | wc -l`
 if [ $CHROME_STARTED -gt 0 ]; then
 	exit 1;
 fi
