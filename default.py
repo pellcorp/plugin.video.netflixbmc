@@ -33,6 +33,7 @@ icon = xbmc.translatePath('special://home/addons/'+addonID+'/icon.png')
 utilityPath = xbmc.translatePath('special://home/addons/'+addonID+'/resources/NetfliXBMC_Utility.exe')
 sendKeysPath = xbmc.translatePath('special://home/addons/'+addonID+'/resources/NetfliXBMC_SendKeys.exe')
 downloadScript = xbmc.translatePath('special://home/addons/'+addonID+'/download.py')
+browserScript = xbmc.translatePath('special://home/addons/'+addonID+'/browser.sh')
 searchHistoryFolder = os.path.join(addonUserDataFolder, "history")
 cacheFolder = os.path.join(addonUserDataFolder, "cache")
 cacheFolderCoversTMDB = os.path.join(cacheFolder, "covers")
@@ -58,6 +59,7 @@ viewIdEpisodes = addon.getSetting("viewIdEpisodesNew")
 viewIdActivity = addon.getSetting("viewIdActivity")
 winBrowser = int(addon.getSetting("winBrowserNew"))
 osxBrowser = int(addon.getSetting("osxBrowser"))
+
 language = addon.getSetting("language")
 auth = addon.getSetting("auth")
 if len(language.split("-"))>1:
@@ -423,7 +425,7 @@ def addMyListToLibrary():
 
 
 def playVideo(id):
-    xbmc.Player().stop()
+    #xbmc.Player().stop()
     if singleProfile:
         url = urlMain+"/WiPlayer?movieid="+id
     else:
@@ -452,22 +454,9 @@ def playVideo(id):
         except:
             pass
     elif osLinux:
-        xbmc.executebuiltin("RunPlugin(plugin://plugin.program.chrome.launcher/?url="+urllib.quote_plus(url)+"&mode=showSite&kiosk="+kiosk+"&userAgent="+urllib.quote_plus(userAgent)+")")
-        try:
-            xbmc.sleep(5000)
-            subprocess.Popen('xdotool mousemove 9999 9999 click 1', shell=True)
-            if linuxFullscreen:
-                subprocess.Popen('xdotool key f', shell=True)
-            xbmc.sleep(5000)
-            subprocess.Popen('xdotool mousemove 9999 9999 click 1', shell=True)
-            if linuxFullscreen:
-                subprocess.Popen('xdotool key f', shell=True)
-            xbmc.sleep(5000)
-            subprocess.Popen('xdotool mousemove 9999 9999 click 1', shell=True)
-            if linuxFullscreen:
-                subprocess.Popen('xdotool key f', shell=True)
-        except:
-            pass
+        xbmc.executebuiltin('LIRC.Stop')
+        subprocess.call('"'+browserScript+'" "'+id+'"', shell=True)
+        xbmc.executebuiltin('LIRC.Start')
     elif osWin:
         if winBrowser == 1:
             path = 'C:\\Program Files\\Internet Explorer\\iexplore.exe'
