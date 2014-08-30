@@ -35,8 +35,7 @@ fi
 if [ $XDOTOOL -eq 0 ]; then
 	# no point sleeping if xdotool is not installed.
 	sleep 5
-	# the 800 800 is just to ensure the mouse is in middle of video but not on any controls by accident
-	xdotool search "Google Chrome" windowactivate --sync mousemove 800 800 click --repeat 2 1 >/dev/null 2>&1
+	xdotool mousemove 9999 9999 click 1
 else
 	echo "xdotool is not installed, can't do full screen"
 fi
