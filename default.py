@@ -407,7 +407,7 @@ def listViewingActivity(type):
     content = opener.open(urlMain+"/WiViewingActivity").read()
     count = 0
     videoIDs = []
-    spl = content.split('<li data-series=')
+    spl = content.split('<li class="retableRow" data-series=')
     for i in range(1, len(spl), 1):
         entry = spl[i]
         pDialog.update((count+1)*100/len(spl), translation(30142)+"...")
@@ -667,13 +667,12 @@ def login():
 
 def setProfile():
     token = addon.getSetting("profile")
-    opener.open("https://www.netflix.com/ProfilesGate?nextpage=http%3A%2F%2Fwww.netflix.com%2FDefault")
+    opener.open("http://www.netflix.com/WiHome")
     opener.open("https://api-global.netflix.com/desktop/account/profiles/switch?switchProfileGuid="+token)
     cj.save(cookieFile)
 
-
 def chooseProfile():
-    content = opener.open("https://www.netflix.com/ProfilesGate?nextpage=http%3A%2F%2Fwww.netflix.com%2FDefault").read()
+    content = opener.open("http://www.netflix.com/WiHome").read()
     match = re.compile('"profileName":"(.+?)".+?token":"(.+?)"', re.DOTALL).findall(content)
     profiles = []
     tokens = []
