@@ -558,7 +558,14 @@ def playVideoMain(id):
             pass
     elif osLinux:
         xbmc.executebuiltin('LIRC.Stop')
-        subprocess.call('"'+browserScript+'" "'+id+'"', shell=True)
+        
+        if token != "":
+            call = '"'+browserScript+'" "'+id+'" "'+token+'"';
+        else:
+            call = '"'+browserScript+'" "'+id+'"';
+        
+        subprocess.call(call, shell=True)
+         
         xbmc.executebuiltin('LIRC.Start')
         #xbmc.executebuiltin("RunPlugin(plugin://plugin.program.chrome.launcher/?url="+urllib.quote_plus(url)+"&mode=showSite&kiosk="+kiosk+")")
         #try:
