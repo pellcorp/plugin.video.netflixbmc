@@ -646,7 +646,7 @@ def removeFromQueue(id):
 
 def login():
     content = opener.open(urlMain+"/Login").read()
-    match = re.compile('"LOCALE":"(.+?)"', re.DOTALL).findall(content)
+    match = re.compile('"locale":"(.+?)"', re.DOTALL).findall(content)
     if match and not addon.getSetting("language"):
         addon.setSetting("language", match[0])
     if not "Sorry, Netflix is not available in your country yet." in content and not "Sorry, Netflix hasn't come to this part of the world yet" in content:
@@ -658,7 +658,7 @@ def login():
             authUrl = match[0]
             addon.setSetting("auth", authUrl)
             content = opener.open("https://signup.netflix.com/Login", "authURL="+urllib.quote_plus(authUrl)+"&email="+urllib.quote_plus(username)+"&password="+urllib.quote_plus(password)+"&RememberMe=on").read()
-            match = re.compile('"LOCALE":"(.+?)"', re.DOTALL).findall(content)
+            match = re.compile('"locale":"(.+?)"', re.DOTALL).findall(content)
             if match and not addon.getSetting("language"):
                 addon.setSetting("language", match[0])
             cj.save(cookieFile)
