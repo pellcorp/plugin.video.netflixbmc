@@ -25,8 +25,6 @@ else
 	url="http://www.netflix.com/WiPlayer?movieid=$1"
 fi
 
-echo "URL: $url" >> /tmp/browser.log
-
 # notice the ampersand to send google chrome into back ground so that the script continues and we execute the xdotool below
 /usr/bin/google-chrome --start-maximized --disable-translate --disable-new-tab-first-run --no-default-browser-check --no-first-run --kiosk "$url" &
 CHROME_PID=$!
