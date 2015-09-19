@@ -266,12 +266,15 @@ def listVideos(url, type, runAsWidget=False):
             #if not match: match = re.compile('<a class="playHover" href=".+?WiPlayer\?movieid=(.+?)&', re.DOTALL).findall(content)
             if not match: match = re.compile('"boxart":".+?","titleId":(.+?),', re.DOTALL).findall(content)
             if not match: match = re.compile('WiPlayer\?movieid=([0-9]+?)&', re.DOTALL).findall(content)
+            if not match: match = re.compile('"summary":.*?"id":([0-9]+)', re.DOTALL).findall(content)
+            if not match: match = re.compile('"boxarts":.*?"id":([0-9]+)', re.DOTALL).findall(content)
             i = 1
             for videoID in match:
-                if not runAsWidget:
-                    pDialog.update(i*100/len(match), translation(30142)+"...")
-                listVideo(videoID, "", "", False, False, type)
-                i+=1
+                if int(videoID)>10000000:
+                    if not runAsWidget:
+                        pDialog.update(i*100/len(match), translation(30142)+"...")
+                    listVideo(videoID, "", "", False, False, type)
+                    i+=1
             match1 = re.compile('&pn=(.+?)&', re.DOTALL).findall(url)
             match2 = re.compile('&from=(.+?)&', re.DOTALL).findall(url)
             matchApiRoot = re.compile('"API_ROOT":"(.+?)"', re.DOTALL).findall(content)
