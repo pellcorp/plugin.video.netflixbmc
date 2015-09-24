@@ -251,7 +251,7 @@ def listVideos(url, type, runAsWidget=False):
         pDialog.update( 0, translation(30142)+"...")
     xbmcplugin.setContent(pluginhandle, "movies")
     content = load(url)
-    #content = load(url) # Terrible... currently first call doesn't have the content, it requires two calls....
+    content = load(url) # Terrible... currently first call doesn't have the content, it requires two calls....
     if not 'id="page-LOGIN"' in content:
         if singleProfile and 'id="page-ProfilesGate"' in content:
             forceChooseProfile()
@@ -268,6 +268,7 @@ def listVideos(url, type, runAsWidget=False):
             if not match: match = re.compile('WiPlayer\?movieid=([0-9]+?)&', re.DOTALL).findall(content)
             if not match: match = re.compile('"summary":.*?"id":([0-9]+)', re.DOTALL).findall(content)
             if not match: match = re.compile('"boxarts":.*?"id":([0-9]+)', re.DOTALL).findall(content)
+            if not match: match = re.compile('<a href="/watch/([0-9]+)', re.DOTALL).findall(content)
             i = 1
             for videoID in match:
                 if int(videoID)>10000000:
