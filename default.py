@@ -667,7 +667,7 @@ def playVideo(id):
 def playVideoMain(id):
     xbmc.Player().stop()
     if singleProfile:
-        url = urlMain+"/WiPlayer?movieid="+id
+        url = urlMain+"/watch/"+id
     else:
         token = ""
         if addon.getSetting("profile"):
